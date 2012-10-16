@@ -5,7 +5,7 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Runtime.Serialization;
 using System.Collections.Generic;
 
-namespace ElastikWavExtractor
+namespace ElastikExtractor
 {
     class Program
     {
