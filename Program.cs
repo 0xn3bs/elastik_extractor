@@ -16,55 +16,54 @@ namespace ElastikExtractor
                 FileInfo fi = new FileInfo(args[i]);
                 string base_folder = fi.Name.TrimEnd(fi.Extension.ToCharArray());
 
-                FileStream file_stream = new FileStream(args[i], FileMode.Open);
+                FileStream file_stream = new FileStream(args[i], FileMode.Open, FileAccess.Read);
 
-                BinaryReader binary_reader = new BinaryReader(file_stream, System.Text.Encoding.BigEndianUnicode);
-                Header header = ReadHeader(binary_reader);
+                Header header = ReadHeader(file_stream);
 
                 if (header.Ident == Header.HEADER_IDENT)
                     Console.WriteLine("VALID Ueberschall file!");
                 else
+                {
                     Console.WriteLine("INVALID Ueberschall file!");
+                    continue;
+                }
 
-                List<Chunk> chunks = ReadChunks(binary_reader, header);
+                List<Chunk> chunks = ReadChunks(file_stream, header);
 
                 ListContentsToFile(chunks);
                 CreateDirectories(chunks, base_folder);
-                ReadAndSaveBinaryData(chunks, binary_reader, base_folder);
+                ReadAndSaveBinaryData(chunks, file_stream, base_folder);
             }
         }
 
-        public static Header ReadHeader(BinaryReader binary_reader)
+        public static Header ReadHeader(FileStream file_stream)
         {
             Header s = new Header();
 
-            byte[] bytes;
-            bytes = binary_reader.ReadBytes(sizeof(int));
+            byte[] bytes = new byte[sizeof(int)];
+
+            file_stream.Read(bytes, 0, sizeof(int));
             s.Ident = System.Text.Encoding.UTF8.GetString(bytes);   //  File identifier.
 
-            bytes = binary_reader.ReadBytes(sizeof(int));
-            Array.Reverse(bytes);
-            s.Ver = BitConverter.ToInt32(bytes, 0);                 //  Version number?
+            ReadBigEndian(file_stream, bytes, sizeof(int));
+            s.Ver = BitConverter.ToInt32(bytes, 0);
 
-            bytes = binary_reader.ReadBytes(sizeof(int));
-            Array.Reverse(bytes);
+            ReadBigEndian(file_stream, bytes, sizeof(int));
             s.Unk1 = BitConverter.ToInt32(bytes, 0);                //  Padding?
 
-            bytes = binary_reader.ReadBytes(sizeof(int));
-            Array.Reverse(bytes);
+            ReadBigEndian(file_stream, bytes, sizeof(int));
             s.Unk2 = BitConverter.ToInt32(bytes, 0);                //  More padding?
 
-            bytes = binary_reader.ReadBytes(sizeof(int));
-            Array.Reverse(bytes);
+            ReadBigEndian(file_stream, bytes, sizeof(int));
             s.NumEntries = BitConverter.ToInt32(bytes, 0);          //  Number of file entries.
 
             return s;
         }
 
-        private static void ReadAndSaveBinaryData(List<Chunk> chunks, BinaryReader binary_reader, string base_directory)
+        private static void ReadAndSaveBinaryData(List<Chunk> chunks, FileStream file_stream, string base_directory)
         {
             //  Beginning of the binary data.
-            long bin_offset = binary_reader.BaseStream.Position;
+            long bin_offset = file_stream.Position;
 
             Console.Clear();
 
@@ -79,7 +78,9 @@ namespace ElastikExtractor
                         {
                             Console.SetCursorPosition(0, 0);
                             Console.WriteLine(i + "/" + chunks.Count);
-                            writer.Write(binary_reader.ReadBytes(chunks[i].Size));
+                            byte[] bytes = new byte[chunks[i].Size];
+                            file_stream.Read(bytes, 0, chunks[i].Size);
+                            writer.Write(bytes);
                         }
                     }
                 }
@@ -101,13 +102,13 @@ namespace ElastikExtractor
             }
         }
 
-        private static List<Chunk> ReadChunks(BinaryReader binary_reader, Header header)
+        private static List<Chunk> ReadChunks(FileStream file_stream, Header header)
         {
             List<Chunk> chunks = new List<Chunk>();
 
             for (int i = 0; i < header.NumEntries; ++i)
             {
-                chunks.Add(ReadChunk(binary_reader));
+                chunks.Add(ReadChunk(file_stream));
 
                 if (chunks[i].Type == 128)
                     chunks[i].Id = i + 1;
@@ -116,38 +117,41 @@ namespace ElastikExtractor
             return chunks;
         }
 
-        public static Chunk ReadChunk(BinaryReader binary_reader)
+        public static Chunk ReadChunk(FileStream file_stream)
         {
             Chunk c = new Chunk();
 
-            byte[] bytes;
+            byte[] bytes = new byte[sizeof(int)];
 
-            bytes = binary_reader.ReadBytes(sizeof(int));
-            Array.Reverse(bytes);
-            c.Offset = BitConverter.ToInt32(bytes, 0);              //  Chunk size.
+            ReadBigEndian(file_stream, bytes, sizeof(int));
+            c.Offset = BitConverter.ToInt32(bytes, 0);                  //  Chunk size.
 
-            bytes = binary_reader.ReadBytes(4);                                //  Padding?
+            bytes = new byte[4];
+            file_stream.Read(bytes, 0, 4);                              //  Padding?
 
-            bytes = binary_reader.ReadBytes(sizeof(int));
+            bytes = new byte[sizeof(int)];
+            file_stream.Read(bytes, 0, sizeof(int));
             c.Type = BitConverter.ToInt32(bytes, 0);
 
-            bytes = binary_reader.ReadBytes(sizeof(int));
-            Array.Reverse(bytes);
+            bytes = new byte[sizeof(int)];
+            ReadBigEndian(file_stream, bytes, sizeof(int));
             c.Size = BitConverter.ToInt32(bytes, 0);
 
-            bytes = binary_reader.ReadBytes(16);                                //   16 bytes of garbage? No clue honestly.
+            bytes = new byte[16];
+            file_stream.Read(bytes, 0, 16);                             //   16 bytes of garbage? No clue honestly.
 
-            bytes = binary_reader.ReadBytes(sizeof(int));
-            Array.Reverse(bytes);
+            bytes = new byte[sizeof(int)];
+            ReadBigEndian(file_stream, bytes, sizeof(int));
             c.Parent = BitConverter.ToInt32(bytes, 0);
 
-            c.Name = ReadString(binary_reader);
+            c.Name = ReadString(file_stream);
 
-            int stringSize = c.Name.Length * 2;                                 //  x2 because of unicode...
+            int stringSize = System.Text.Encoding.BigEndianUnicode.GetByteCount(c.Name); //  x2 because of unicode...
 
-            int off = c.Offset - 32 - stringSize - sizeof(int) - 2;             //  -2 for string null terminator.
+            int off = c.Offset - 32 - stringSize - sizeof(int) - 2;     //  -2 for string null terminator.
 
-            bytes = binary_reader.ReadBytes(off);                               //  Remainder of chunk data we have no clue.
+            bytes = new byte[off];
+            file_stream.Read(bytes, 0, off);                            //  Remainder of chunk data we have no clue.
 
             return c;
         }
@@ -166,15 +170,24 @@ namespace ElastikExtractor
             }
         }
 
-        public static string ReadString(BinaryReader binary_reader)
+        private static void ReadBigEndian(FileStream file_stream, byte[] bytes, int size)
+        {
+            file_stream.Read(bytes, 0, sizeof(int));
+            Array.Reverse(bytes);
+        }
+
+        public static string ReadString(FileStream file_stream)
         {
             string s = String.Empty;
-            char chr = binary_reader.ReadChar();
 
-            while (chr != '\0')
+            byte[] bytes = new byte[2];
+            
+            file_stream.Read(bytes, 0, 2);
+
+            while (!(bytes[0] == 0 && bytes[1] == 0))
             {
-                s += chr;
-                chr = binary_reader.ReadChar();
+                s += System.Text.Encoding.BigEndianUnicode.GetString(bytes, 0, 2);
+                file_stream.Read(bytes, 0, 2);
             }
 
             return s;
