@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ElastikWavExtractor", "ElastikWavExtractor.csproj", "{D89357E3-C63A-438E-BFE6-4CF3933F7CAC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ElastikExtractor", "ElastikExtractor.csproj", "{D89357E3-C63A-438E-BFE6-4CF3933F7CAC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

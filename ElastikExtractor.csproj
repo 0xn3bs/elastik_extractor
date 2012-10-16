@@ -8,8 +8,8 @@
     <ProjectGuid>{D89357E3-C63A-438E-BFE6-4CF3933F7CAC}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>ElastikWavExtractor</RootNamespace>
-    <AssemblyName>ElastikWavExtractor</AssemblyName>
+    <RootNamespace>ElastikExtractor</RootNamespace>
+    <AssemblyName>ElastikExtractor</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <TargetFrameworkProfile>Client</TargetFrameworkProfile>
     <FileAlignment>512</FileAlignment>
