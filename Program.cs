@@ -161,23 +161,9 @@ namespace ElastikExtractor
 
                 if (chunks[i].Type == 128)
                 {
-                    CreateDirectory(System.IO.Path.Combine(base_directory,chunks[i].FullName));
+                    Directory.CreateDirectory(System.IO.Path.Combine(base_directory,chunks[i].FullName);
                 }
             }
-        }
-
-        public static void CreateDirectory(string path)
-        {
-            string current = String.Empty;
-            int i = 0;
-
-            while (Directory.Exists(Path.Combine(path, current)))
-            {
-                i++;
-                current = String.Format("{0} {1}", String.Empty, i);
-            }
-
-            Directory.CreateDirectory(Path.Combine(path, current));
         }
 
         public static string ReadString(BinaryReader binary_reader)
