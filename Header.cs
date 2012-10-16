@@ -29,9 +29,7 @@ namespace ElastikExtractor
             string path = chnk.Name;
 
             if (chnks[chnks.IndexOf(chnk)].Parent != 0)
-            {
-                path = ChunksFullPath(chnks[chnks[chnks.IndexOf(chnk)].Parent - 1], chnks) + "/" + chnk.Name;
-            }
+                path = System.IO.Path.Combine(ChunksFullPath(chnks[chnks[chnks.IndexOf(chnk)].Parent - 1], chnks), chnk.Name);
 
             return path;
         }
