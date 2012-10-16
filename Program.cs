@@ -161,7 +161,7 @@ namespace ElastikExtractor
 
                 if (chunks[i].Type == 128)
                 {
-                    Directory.CreateDirectory(System.IO.Path.Combine(base_directory,chunks[i].FullName);
+                    Directory.CreateDirectory(System.IO.Path.Combine(base_directory,chunks[i].FullName));
                 }
             }
         }
