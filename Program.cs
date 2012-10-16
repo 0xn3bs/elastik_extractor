@@ -187,8 +187,6 @@ namespace ElastikExtractor
                 chr = Convert.ToChar(input.Read());
             }
 
-            input.Close();
-
             return s;
         }
     }
