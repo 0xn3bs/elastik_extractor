@@ -16,14 +16,17 @@ namespace ElastikExtractor
                 FileInfo fi = new FileInfo(args[i]);
                 string base_folder = fi.Name.TrimEnd(fi.Extension.ToCharArray());
 
-                FileStream file_stream = new FileStream(args[i], FileMode.Open);
+                FileStream file_stream = new FileStream(args[i], FileMode.Open, FileAccess.Read);
 
                 Header header = ReadHeader(file_stream);
 
                 if (header.Ident == Header.HEADER_IDENT)
                     Console.WriteLine("VALID Ueberschall file!");
                 else
+                {
                     Console.WriteLine("INVALID Ueberschall file!");
+                    continue;
+                }
 
                 List<Chunk> chunks = ReadChunks(file_stream, header);
 
@@ -42,20 +45,16 @@ namespace ElastikExtractor
             file_stream.Read(bytes, 0, sizeof(int));
             s.Ident = System.Text.Encoding.UTF8.GetString(bytes);   //  File identifier.
 
-            file_stream.Read(bytes, 0, sizeof(int));
-            Array.Reverse(bytes);
+            ReadBigEndian(file_stream, bytes, sizeof(int));
             s.Ver = BitConverter.ToInt32(bytes, 0);
 
-            file_stream.Read(bytes, 0, sizeof(int));
-            Array.Reverse(bytes);
+            ReadBigEndian(file_stream, bytes, sizeof(int));
             s.Unk1 = BitConverter.ToInt32(bytes, 0);                //  Padding?
 
-            file_stream.Read(bytes, 0, sizeof(int));
-            Array.Reverse(bytes);
+            ReadBigEndian(file_stream, bytes, sizeof(int));
             s.Unk2 = BitConverter.ToInt32(bytes, 0);                //  More padding?
 
-            file_stream.Read(bytes, 0, sizeof(int));
-            Array.Reverse(bytes);
+            ReadBigEndian(file_stream, bytes, sizeof(int));
             s.NumEntries = BitConverter.ToInt32(bytes, 0);          //  Number of file entries.
 
             return s;
@@ -124,8 +123,7 @@ namespace ElastikExtractor
 
             byte[] bytes = new byte[sizeof(int)];
 
-            file_stream.Read(bytes, 0, sizeof(int));
-            Array.Reverse(bytes);
+            ReadBigEndian(file_stream, bytes, sizeof(int));
             c.Offset = BitConverter.ToInt32(bytes, 0);                  //  Chunk size.
 
             bytes = new byte[4];
@@ -136,16 +134,14 @@ namespace ElastikExtractor
             c.Type = BitConverter.ToInt32(bytes, 0);
 
             bytes = new byte[sizeof(int)];
-            file_stream.Read(bytes, 0, sizeof(int));
-            Array.Reverse(bytes);
+            ReadBigEndian(file_stream, bytes, sizeof(int));
             c.Size = BitConverter.ToInt32(bytes, 0);
 
             bytes = new byte[16];
             file_stream.Read(bytes, 0, 16);                             //   16 bytes of garbage? No clue honestly.
 
             bytes = new byte[sizeof(int)];
-            file_stream.Read(bytes, 0, sizeof(int));
-            Array.Reverse(bytes);
+            ReadBigEndian(file_stream, bytes, sizeof(int));
             c.Parent = BitConverter.ToInt32(bytes, 0);
 
             c.Name = ReadString(file_stream);
@@ -174,17 +170,24 @@ namespace ElastikExtractor
             }
         }
 
+        private static void ReadBigEndian(FileStream file_stream, byte[] bytes, int size)
+        {
+            file_stream.Read(bytes, 0, sizeof(int));
+            Array.Reverse(bytes);
+        }
+
         public static string ReadString(FileStream file_stream)
         {
-            TextReader input = new StreamReader(file_stream, System.Text.Encoding.BigEndianUnicode);
             string s = String.Empty;
 
-            char chr = Convert.ToChar(input.Read());
+            byte[] bytes = new byte[2];
+            
+            file_stream.Read(bytes, 0, 2);
 
-            while (chr != '\0')
+            while (!(bytes[0] == 0 && bytes[1] == 0))
             {
-                s += chr;
-                chr = Convert.ToChar(input.Read());
+                s += System.Text.Encoding.BigEndianUnicode.GetString(bytes, 0, 2);
+                file_stream.Read(bytes, 0, 2);
             }
 
             return s;
